@@ -26,7 +26,7 @@
 #
 # The full changelog can be found at <http://p.outlyer.net/vcs/files/CHANGELOG>
 
-declare -r VERSION="1.14.0"
+declare -r VERSION="1.14.1"
 declare -r RELEASE=1
 declare -ri PRERELEASE=2
 [ "$RELEASE" -eq 1 ] || declare -r SUBVERSION="-pre.${PRERELEASE}"
@@ -173,7 +173,8 @@ declare -i BLANK_THRESHOLD=10
 declare -a EVASION_ALTERNATIVES=( -5 +5 -10 +10 -30 +30 )
 
 # Save the terminal settings to later restore them (in exithdlr)
-declare -r STTY=$(stty -g)
+# Empty when stdin isn't a terminal
+declare -r STTY=$(stty -g 2>/dev/null)
 
 # }}} # End of constants
 
@@ -1738,7 +1739,7 @@ exithdlr() {
 	cleanup
 	# XXX: In one of my computers a terminal reset is required
 	#tset
-	stty "$STTY"
+	[[ -z $STTY ]] || stty "$STTY"
 }
 
 # Feedback handling, these functions are use to print messages respecting
@@ -1919,7 +1920,9 @@ init_feedback() {
 			# NOTE: If the terminal type is unknown tput will error with a message
 			if [[ '80' != "$(tput -T vt100 colors)" ]] ; then
 				# colors is interpreted literally
-				tputc=$(tput colors)
+				# It fails when TERM is unset or unknown (cron, docker without -t),
+				#+treat that as no colour support instead of aborting under set -e
+				tputc=$(tput colors) || tputc="-1"
 			fi
 		fi 2>/dev/null
 		# Is it able to set colours?
@@ -1940,7 +1943,7 @@ init_feedback() {
 		else
 			HAS_COLORS="no"
 			set_feedback_prefixes
-		fi >/dev/null
+		fi >/dev/null 2>&1
 	fi
 
 	if [[ -z $HAS_COLORS ]]; then
