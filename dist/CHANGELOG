@@ -1,3 +1,10 @@
+1.14.0 (2026-10-11):
+    * Support rotated videos
+    * Use "magick" for convert, montage and identify when available (IMv7)
+    * macOS: Look for Homebrew's keg-only gnu-getopt automatically
+    * macOS: Fall back to system font files when DejaVu Sans isn't found
+    * BUGFIX: Non-latin filename fallback font wasn't sanitised
+
 1.13.5 (?):
     * Use ffprobe instead of ffmpeg for file identification purposes
     * BUGFIX: Fix error during blank frame evasion on newer ImageMagick [#378]

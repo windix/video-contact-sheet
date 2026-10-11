@@ -26,8 +26,8 @@
 #
 # The full changelog can be found at <http://p.outlyer.net/vcs/files/CHANGELOG>
 
-declare -r VERSION="1.13.5"
-declare -r RELEASE=0
+declare -r VERSION="1.14.0"
+declare -r RELEASE=1
 declare -ri PRERELEASE=2
 [ "$RELEASE" -eq 1 ] || declare -r SUBVERSION="-pre.${PRERELEASE}"
 
@@ -1579,6 +1579,10 @@ is_linux() {
 	uname -s | grep -iq '^Linux$'
 }
 
+is_darwin() {
+	uname -s | grep -iq '^Darwin$'
+}
+
 # Get the mountpoint of a mounted image.
 # This only works on Linux. *BSD normal users aren't able to use mdconfig -l
 # Is there any better way?
@@ -1680,14 +1684,23 @@ test_programs() {
 # Test wether $GETOP is a compatible version; try to choose an alternate if
 # possible
 choose_getopt() {
-	if ! type -pf "$GETOPT" ; then
+	local goe= gor=0 cands=( )
+	cands=( $(type -paf $GETOPT) )
+	# macOS ships BSD getopt, which lacks long options. Homebrew's gnu-getopt
+	#+is keg-only (not added to PATH), so look for it in the usual prefixes.
+	if is_darwin ; then
+		local pfx
+		for pfx in $HOMEBREW_PREFIX /opt/homebrew /usr/local ; do
+			[[ -x $pfx/opt/gnu-getopt/bin/getopt ]] && cands+=( "$pfx/opt/gnu-getopt/bin/getopt" )
+		done
+	fi
+	if [[ ${#cands[@]} -eq 0 ]]; then
 		#  getopt not in path
 		error "Required program getopt not found!"
 		return $EX_UNAVAILABLE
-	fi >/dev/null
-	local goe= gor=0
+	fi
 	# Try getopt. If there's more than one in the path, try all of them
-	for goe in $(type -paf $GETOPT) ; do
+	for goe in "${cands[@]}" ; do
 		"$goe" -T || gor=$?
 		if [[ $gor -eq 4 ]]; then
 			# Correct getopt found
@@ -3741,6 +3754,9 @@ coherence_check() {
 	# Interval=0 == default interval
 	fptest "$INTERVAL" -eq 0 && interval=$DEFAULT_INTERVAL
 
+	# Must run before the non-latin fallback below, which copies FONT_HEADING
+	sanitise_fonts
+
 	# If in non-latin mode and no nonlatin font has been picked try to pick one.
 	# Should it fail, fallback to latin font.
 	if [[ ( $NONLATIN_FILENAMES -eq 1 ) && ( -z $NONLATIN_FONT ) ]]; then
@@ -3751,8 +3767,6 @@ coherence_check() {
 			NONLATIN_FONT="$FONT_HEADING"
 		}
 	fi
-
-	sanitise_fonts
 }
 
 # If the OS hasn't registered TTF fonts with IM, try to use a saner value
@@ -3771,12 +3785,21 @@ sanitise_fonts() {
 	[[ ( -z $USR_FONT_TSTAMPS ) && ( $FONT_TSTAMPS != 'DejaVu-Sans-Book' ) ]] && return
 	[[ ( -z $USR_FONT_SIGN ) && ( $FONT_SIGN != 'DejaVu-Sans-Book' ) ]] && return
 	# Try to locate DejaVu Sans
-	local dvs=''
-	if [[ -d /usr/local/share/fonts ]]; then
-		dvs=$(find /usr/local/share/fonts/ -type f -iname 'dejavusans.ttf')
-	fi
-	if [[ ( -z $dvs ) && ( -d /usr/share/fonts ) ]]; then
-		dvs=$(find /usr/share/fonts/ -type f -iname 'dejavusans.ttf')
+	local dvs='' fdir
+	for fdir in /usr/local/share/fonts /usr/share/fonts \
+			"$HOME/Library/Fonts" /Library/Fonts ; do
+		[[ -d $fdir ]] || continue
+		dvs=$(find "$fdir/" -type f -iname 'dejavusans.ttf' | head -1)
+		[[ -z $dvs ]] || break
+	done
+	if [[ ( -z $dvs ) ]] && is_darwin ; then
+		# macOS: ImageMagick often can't resolve font names, use files
+		local f
+		for f in /System/Library/Fonts/Helvetica.ttc \
+				/System/Library/Fonts/Supplemental/Arial.ttf \
+				/Library/Fonts/Arial.ttf ; do
+			[[ -f $f ]] && { dvs=$f ; break ; }
+		done
 	fi
 	if [[ -z $dvs ]]; then
 		warn "Unable to locate DejaVu Sans font. Falling back to helvetica."
