@@ -1,5 +1,9 @@
-1.13.5 (?):
+1.14.0 (2026-10-11):
     * Use ffprobe instead of ffmpeg for file identification purposes
+    * Support rotated videos
+    * Use "magick" for convert, montage and identify when available (IMv7)
+    * macOS: Look for Homebrew's keg-only gnu-getopt automatically
+    * macOS: Fall back to system font files when DejaVu Sans isn't found
     * BUGFIX: Fix error during blank frame evasion on newer ImageMagick [#378]
     * BUGFIX: Fix constraint check error message
     * BUGFIX: Fix terminal capabilities check to enable color output on more
