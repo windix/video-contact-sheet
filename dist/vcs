@@ -1689,9 +1689,18 @@ choose_getopt() {
 		error "Required program getopt not found!"
 		return $EX_UNAVAILABLE
 	fi >/dev/null
-	local goe= gor=0
+	local goe= gor=0 cands=( )
+	cands=( $(type -paf $GETOPT) )
+	# macOS ships BSD getopt, which lacks long options. Homebrew's gnu-getopt
+	#+is keg-only (not added to PATH), so look for it in the usual prefixes.
+	if [[ $(uname -s) == Darwin ]]; then
+		local pfx
+		for pfx in /opt/homebrew /usr/local ; do
+			[[ -x $pfx/opt/gnu-getopt/bin/getopt ]] && cands+=( "$pfx/opt/gnu-getopt/bin/getopt" )
+		done
+	fi
 	# Try getopt. If there's more than one in the path, try all of them
-	for goe in $(type -paf $GETOPT) ; do
+	for goe in "${cands[@]}" ; do
 		"$goe" -T || gor=$?
 		if [[ $gor -eq 4 ]]; then
 			# Correct getopt found
