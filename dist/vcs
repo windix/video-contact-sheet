@@ -1604,6 +1604,10 @@ setup_image_magick() {
 		CONVERT_BIN="$magick"
 		MONTAGE_BIN=( "$magick" montage )
 		IDENTIFY_BIN=( "$magick" identify )
+		# Route the bare convert/identify calls through magick as well, to
+		#+avoid the IMv7 deprecation warnings
+		convert() { "$CONVERT_BIN" "$@"; }
+		identify() { "${IDENTIFY_BIN[@]}" "$@"; }
 	else
 		CONVERT_BIN=$(type -pf convert)
 		MONTAGE_BIN=$(type -pf montage)
@@ -3777,6 +3781,15 @@ sanitise_fonts() {
 	fi
 	if [[ ( -z $dvs ) && ( -d /usr/share/fonts ) ]]; then
 		dvs=$(find /usr/share/fonts/ -type f -iname 'dejavusans.ttf')
+	fi
+	if [[ -z $dvs ]]; then
+		# macOS: ImageMagick often can't resolve font names, use files
+		local f
+		for f in /System/Library/Fonts/Helvetica.ttc \
+				/System/Library/Fonts/Supplemental/Arial.ttf \
+				/Library/Fonts/Arial.ttf ; do
+			[[ -f $f ]] && { dvs=$f ; break ; }
+		done
 	fi
 	if [[ -z $dvs ]]; then
 		warn "Unable to locate DejaVu Sans font. Falling back to helvetica."
