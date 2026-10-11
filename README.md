@@ -28,3 +28,11 @@ Take a look at the [documentation] and/or use the `--help` and `--fullhelp` opti
 [![Command: $ vcs -n6 -H 540  mariposaHD.S01E05.1080p.en.wmv](https://p.outlyer.net/_media/vcs/samples/mariposahd_s01e05_1.0.4b.jpg?w=250&tok=b9b44f)][sample-mariposahd]
 [![Filmstrip-mode sample](https://p.outlyer.net/_media/vcs/samples/film_mode_sample.jpg?w=250&tok=329f98)][sample-film-mode]
 [![White contact sheet](https://p.outlyer.net/_media/vcs/samples/bbb_excfgs_allwhite.jpg?w=250&tok=d5310f)][sample-bbb-white]
+
+## Releasing
+
+Releases are published by the [Release workflow](.github/workflows/release.yml):
+
+1. In a pull request, set `VERSION` (and `RELEASE=1`) in `dist/vcs` and add an entry for that version at the top of `dist/CHANGELOG`. The workflow previews the release notes in the PR's job summary and fails if the CHANGELOG entry is missing.
+2. Merge it. The workflow tags `v<VERSION>` and publishes a GitHub release whose notes are the CHANGELOG entry plus [`.github/release/install.md`](.github/release/install.md).
+3. The [windix/tap](https://github.com/windix/homebrew-tap) autobump job opens a pull request updating the Homebrew formula within a day.
