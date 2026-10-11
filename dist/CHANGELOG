@@ -1,3 +1,8 @@
+1.14.1 (2026-10-11):
+    * BUGFIX: Exited silently when TERM was unset or unknown (e.g. cron, docker
+              without -t)
+    * BUGFIX: Don't print tput/stty errors when not running in a terminal
+
 1.14.0 (2026-10-11):
     * Support rotated videos
     * Use "magick" for convert, montage and identify when available (IMv7)
